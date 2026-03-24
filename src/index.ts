@@ -1,6 +1,10 @@
 import { Container, getContainer, getRandom } from "@cloudflare/containers";
 import { Hono } from "hono";
 
+export interface Env {
+	MY_CONTAINER: DurableObjectNamespace;
+}
+
 export class MyContainer extends Container<Env> {
 	// Port the container listens on (default: 8080)
 	defaultPort = 8080;
@@ -44,8 +48,7 @@ app.get("/", (c) => {
 // Route requests to a specific container using the container ID
 app.get("/container/:id", async (c) => {
 	const id = c.req.param("id");
-	const containerId = c.env.MY_CONTAINER.idFromName(`/container/${id}`);
-	const container = c.env.MY_CONTAINER.get(containerId);
+	const container = getContainer(c.env.MY_CONTAINER, `/container/${id}`);
 	return await container.fetch(c.req.raw);
 });
 
@@ -65,6 +68,11 @@ app.get("/lb", async (c) => {
 app.get("/singleton", async (c) => {
 	const container = getContainer(c.env.MY_CONTAINER);
 	return await container.fetch(c.req.raw);
+});
+
+// Fallback route to catch 404s
+app.notFound((c) => {
+	return c.text("404 Not Found", 404);
 });
 
 export default app;
